@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sherman Park's population changed over the past decade.</title>
+<style>
+  :root { --blue:#0066b2; --orange:#f47920; --ink:#222; --muted:#666; --grid:#ddd; }
+  html,body { margin:0; background:#fff; color:var(--ink); font-family:Heebo,Arial,sans-serif; }
+  .wrap { max-width:960px; margin:auto; padding:14px 12px 8px; box-sizing:border-box; }
+  h1 { font-size:1.3rem; margin:0 0 3px; } .dek { color:var(--muted); font-size:.92rem; margin-bottom:8px; }
+  svg { display:block; width:100%; height:auto; overflow:visible; } .axis text { font-size:12px; }
+  .grid line { stroke:var(--grid); } .grid path { display:none; } .axis path,.axis line { stroke:#888; }
+  .tip { position:fixed; pointer-events:none; background:#222; color:white; padding:8px 10px; border-radius:4px; font-size:12px; line-height:1.4; opacity:0; }
+  .note { font-size:12px; color:var(--muted); margin-top:5px; }
+</style>
+<div class="wrap"><h1>Sherman Park's population is shrinking.</h1><br><div class="dek">The neighborhood lost more than 2,000 residents between 2016 and 2024 - roughly a quarter of its population.</div><div id="chart"></div><div class="note">2016 and 2024 population estimates reflect 2016-2020 and 2021-2025 American Community Survey estimates for three tracts that roughly match the boundaries of Sherman Park.</div></div><div class="tip" id="tip"></div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script><script>
+const CSV_URL='outputs/selected_tracts_acs_comparison_2016_2024.csv';
+d3.csv(CSV_URL).then(raw=>render(raw.filter(d=>d.geoid==='COMBINED').map(d=>({old:+d.total_population_2016,new:+d.total_population_2024,change:+d.total_population_pct_change})))).catch(showError);
+function render(data){const d=data[0],box=document.querySelector('#chart'),width=Math.min(960,box.clientWidth||960),margin={top:12,right:18,bottom:48,left:62},h=420,innerW=width-margin.left-margin.right,innerH=h-margin.top-margin.bottom,svg=d3.select(box).append('svg').attr('viewBox',`0 0 ${width} ${h}`),g=svg.append('g').attr('transform',`translate(${margin.left},${margin.top})`),x=d3.scaleBand().domain(['2016','2024']).range([innerW*.15,innerW*.85]).padding(.18),y=d3.scaleLinear().domain([0,d3.max([d.old,d.new])*1.15]).nice().range([innerH,0]);g.append('g').attr('class','grid').call(d3.axisLeft(y).ticks(6).tickSize(-innerW).tickFormat(''));g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(6).tickFormat(d3.format(',')));g.append('g').attr('class','axis').attr('transform',`translate(0,${innerH})`).call(d3.axisBottom(x).tickSize(0));const values=[{year:'2016',value:d.old,color:'#0066b2'},{year:'2024',value:d.new,color:'#f47920'}],tip=d3.select('#tip');g.selectAll('rect').data(values).join('rect').attr('x',v=>x(v.year)).attr('width',x.bandwidth()).attr('y',v=>y(v.value)).attr('height',v=>innerH-y(v.value)).attr('fill',v=>v.color).on('mousemove',(e,v)=>tip.style('opacity',1).html(`<strong>Sherman Park</strong><br>${v.year}: ${d3.format(',')(v.value)} residents<br>Change: ${d.change>=0?'+':''}${d3.format('.1%')(d.change)}`).style('left',e.clientX+12+'px').style('top',e.clientY+12+'px')).on('mouseleave',()=>tip.style('opacity',0))}
+function showError(e){document.querySelector('#chart').innerHTML='<p>Could not load the CSV. Check CSV_URL and that the file is served from a web server.</p>';console.error(e)}
+</script>
